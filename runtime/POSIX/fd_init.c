@@ -19,6 +19,7 @@
 #include <sys/stat.h>
 #include <sys/syscall.h>
 #include <unistd.h>
+#include <elf.h>
 
 
 exe_file_system_t __exe_fs;
@@ -43,8 +44,8 @@ exe_sym_env_t __exe_env = {
   0
 };
 
-static void __create_new_dfile(exe_disk_file_t *dfile, unsigned size, 
-                               const char *name, struct stat64 *defaults) {
+static void __create_new_normalfile(exe_disk_file_t *dfile, unsigned size,
+                                    const char *name, struct stat64 *defaults) {
   struct stat64 *s = malloc(sizeof(*s));
   const char *sp;
   char sname[64];
@@ -94,39 +95,172 @@ static void __create_new_dfile(exe_disk_file_t *dfile, unsigned size,
   dfile->stat = s;
 }
 
+static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
+                                 const char *name, struct stat64 *defaults) {
+  struct stat64 *s = malloc(sizeof(*s));
+  const char *sp;
+  char sname[64];
+  for (sp=name; *sp; ++sp)
+    sname[sp-name] = *sp;
+  memcpy(&sname[sp-name], "-stat", 6);
+
+  assert(size);
+
+  dfile->size = size;
+  dfile->contents = malloc(dfile->size);
+  klee_make_symbolic(dfile->contents, dfile->size, name);
+
+  /* elf header */
+
+  Elf64_Ehdr *ehdr = (Elf64_Ehdr *) dfile->contents;
+  /* e_ident, bytes not used from EI_PAD (9) */
+  klee_assume(ehdr->e_ident[EI_MAG0] == ELFMAG0);
+  klee_assume(ehdr->e_ident[EI_MAG1] == ELFMAG1);
+  klee_assume(ehdr->e_ident[EI_MAG2] == ELFMAG2);
+  klee_assume(ehdr->e_ident[EI_MAG3] == ELFMAG3);
+  klee_assume(ehdr->e_ident[EI_CLASS] >= ELFCLASSNONE);
+  klee_assume(ehdr->e_ident[EI_CLASS] < ELFCLASSNUM);
+  klee_assume(ehdr->e_ident[EI_DATA] >= ELFDATANONE);
+  klee_assume(ehdr->e_ident[EI_DATA] < ELFDATANUM);
+  klee_assume(ehdr->e_ident[EI_VERSION] == EV_CURRENT);
+  klee_assume(ehdr->e_ident[EI_OSABI] >= ELFOSABI_NONE);
+  klee_assume(ehdr->e_ident[EI_OSABI] <= ELFOSABI_STANDALONE);
+  /* e_type */
+  klee_assume(ehdr->e_type >= ET_NONE);
+  klee_assume(ehdr->e_type < ET_NUM);
+  /* e_machine */
+  klee_assume(ehdr->e_machine >= EM_NONE);
+  klee_assume(ehdr->e_machine < EM_NUM);
+  /* e_version */
+  klee_assume(ehdr->e_version >= EV_NONE);
+  klee_assume(ehdr->e_version < EV_NUM);
+  /* e_entry, what to put here? */
+  /* e_flags, what to put here? */
+  unsigned ehsize = sizeof(Elf64_Ehdr);
+  unsigned shsize = sizeof(Elf64_Shdr);
+  unsigned phsize = sizeof(Elf64_Phdr);
+  /* e_ehsize, size of elf header */
+  klee_assume(ehdr->e_ehsize == ehsize);
+  /* e_phentsize */
+  klee_assume(ehdr->e_phentsize == phsize);
+  /* e_phnum */
+  klee_assume(ehdr->e_phnum >= 0);
+  klee_assume(ehdr->e_phnum < 10);
+  /* e_shentsize */
+  klee_assume(ehdr->e_shentsize == shsize);
+  /* e_shnum, for now we don't want have too many sections */
+  klee_assume(ehdr->e_shnum >= 0);
+  klee_assume(ehdr->e_shnum < 20);
+  /* e_shstrndx, what to put here? */
+  /* e_shoff, can be zero, but now just let it appear after elf header */
+  klee_assume(ehdr->e_shoff >= ehsize);
+  /* e_phoff, can be zero, but now just let it appear
+     after section header table */
+  klee_assume(ehdr->e_phoff >= ehsize + ehdr->e_shnum * shsize);
+
+  /* section header table */
+
+  Elf64_Shdr *shdrt = (Elf64_Shdr *) ((char *)dfile->contents + ehdr->e_shoff);
+  Elf64_Shdr *shdr;
+  unsigned i;
+  for (i = 0; i < ehdr->e_shnum; ++i) {
+    /* section header */
+    shdr = shdrt + i;
+    /* sh_name */
+    /* sh_type */
+    klee_assume(shdr->sh_type >= SHT_NULL);
+    klee_assume(shdr->sh_type < SHT_NUM);
+    /* sh_flags */
+    /* sh_addr */
+    /* sh_offset */
+    /* sh_size */
+    /* sh_link */
+    /* sh_info */
+    /* sh_addralign */
+    /* sh_entsize */
+  }
+
+  klee_make_symbolic(s, sizeof(*s), sname);
+
+  /* For broken tests */
+  if (!klee_is_symbolic(s->st_ino) &&
+      (s->st_ino & 0x7FFFFFFF) == 0)
+    s->st_ino = defaults->st_ino;
+
+  /* Important since we copy this out through getdents, and readdir
+     will otherwise skip this entry. For same reason need to make sure
+     it fits in low bits. */
+  klee_assume((s->st_ino & 0x7FFFFFFF) != 0);
+
+  /* uclibc opendir uses this as its buffer size, try to keep
+     reasonable. */
+  klee_assume((s->st_blksize & ~0xFFFF) == 0);
+
+  klee_prefer_cex(s, !(s->st_mode & ~(S_IFMT | 0777)));
+  klee_prefer_cex(s, s->st_dev == defaults->st_dev);
+  klee_prefer_cex(s, s->st_rdev == defaults->st_rdev);
+  klee_prefer_cex(s, (s->st_mode&0700) == 0600);
+  klee_prefer_cex(s, (s->st_mode&0070) == 0020);
+  klee_prefer_cex(s, (s->st_mode&0007) == 0002);
+  klee_prefer_cex(s, (s->st_mode&S_IFMT) == S_IFREG);
+  klee_prefer_cex(s, s->st_nlink == 1);
+  klee_prefer_cex(s, s->st_uid == defaults->st_uid);
+  klee_prefer_cex(s, s->st_gid == defaults->st_gid);
+  klee_prefer_cex(s, s->st_blksize == 4096);
+  klee_prefer_cex(s, s->st_atime == defaults->st_atime);
+  klee_prefer_cex(s, s->st_mtime == defaults->st_mtime);
+  klee_prefer_cex(s, s->st_ctime == defaults->st_ctime);
+
+  s->st_size = dfile->size;
+  s->st_blocks = 8;
+  dfile->stat = s;
+}
+
 static unsigned __sym_uint32(const char *name) {
   unsigned x;
   klee_make_symbolic(&x, sizeof x, name);
   return x;
 }
 
-/* n_files: number of symbolic input files, excluding stdin
-   file_length: size in bytes of each symbolic file, including stdin
-   sym_stdout_flag: 1 if stdout should be symbolic, 0 otherwise
-   save_all_writes_flag: 1 if all writes are executed as expected, 0 if 
-                         writes past the initial file size are discarded 
-			 (file offset is always incremented)
-   max_failures: maximum number of system call failures */
-void klee_init_fds(unsigned n_files, unsigned file_length, 
-		   int sym_stdout_flag, int save_all_writes_flag,
-		   unsigned max_failures) {
+/* n_nfiles: number of symbolic normal files, excluding stdin
+   nfile_length: size in bytes of each symbolic normal file, including stdin
+   n_efiles: number of symbolic elf files
+   efile_length: size in bytes of each symbolic elf file */
+void klee_init_fds(unsigned n_nfiles, unsigned nfile_length,
+                   unsigned n_efiles, unsigned efile_length) {
   unsigned k;
   char name[7] = "?-data";
   struct stat64 s;
 
   stat64(".", &s);
 
+  unsigned n_files = n_nfiles + n_efiles;
   __exe_fs.n_sym_files = n_files;
   __exe_fs.sym_files = malloc(sizeof(*__exe_fs.sym_files) * n_files);
-  for (k=0; k < n_files; k++) {
+  for (k=0; k < n_nfiles; k++) {
     name[0] = 'A' + k;
-    __create_new_dfile(&__exe_fs.sym_files[k], file_length, name, &s);
+    __create_new_normalfile(&__exe_fs.sym_files[k], nfile_length, name, &s);
   }
+  for (; k < n_files; k++) {
+    name[0] = 'A' + k;
+    __create_new_elffile(&__exe_fs.sym_files[k], efile_length, name, &s);
+  }
+}
   
+/* file_length: size in bytes of stdin
+   sym_stdout_flag: 1 if stdout should be symbolic, 0 otherwise
+   save_all_writes_flag: 1 if all writes are executed as expected, 0 if
+                         writes past the initial file size are discarded
+			 (file offset is always incremented)
+   max_failures: maximum number of system call failures */
+void klee_init_std_fds(unsigned file_length, int sym_stdout_flag,
+                       int save_all_writes_flag, unsigned max_failures) {
+  struct stat64 s;
+  stat64(".", &s);
   /* setting symbolic stdin */
   if (file_length) {
     __exe_fs.sym_stdin = malloc(sizeof(*__exe_fs.sym_stdin));
-    __create_new_dfile(__exe_fs.sym_stdin, file_length, "stdin", &s);
+    __create_new_normalfile(__exe_fs.sym_stdin, file_length, "stdin", &s);
     __exe_env.fds[0].dfile = __exe_fs.sym_stdin;
   }
   else __exe_fs.sym_stdin = NULL;
@@ -149,7 +283,7 @@ void klee_init_fds(unsigned n_files, unsigned file_length,
   /* setting symbolic stdout */
   if (sym_stdout_flag) {
     __exe_fs.sym_stdout = malloc(sizeof(*__exe_fs.sym_stdout));
-    __create_new_dfile(__exe_fs.sym_stdout, 1024, "stdout", &s);
+    __create_new_normalfile(__exe_fs.sym_stdout, 1024, "stdout", &s);
     __exe_env.fds[1].dfile = __exe_fs.sym_stdout;
     __exe_fs.stdout_writes = 0;
   }

@@ -90,6 +90,7 @@ void klee_init_env(int* argcPtr, char*** argvPtr) {
   char* new_argv[1024];
   unsigned max_len, min_argvs, max_argvs;
   unsigned sym_files = 0, sym_file_len = 0;
+  unsigned sym_elfs = 0, sym_elf_len = 0;
   int sym_stdout_flag = 0;
   int save_all_writes_flag = 0;
   int fd_fail = 0;
@@ -157,6 +158,16 @@ usage: (klee_init_env) [options] [program arguments]\n\
       sym_file_len = __str_to_int(argv[k++], msg);
 
     }
+    else if (__streq(argv[k], "--sym-elfs") || __streq(argv[k], "-sym-elfs")) {
+      const char* msg = "--sym-elfs expects one integer arguments <no-sym-elfs> <sym-elf-len>";
+
+      if (k+2 >= argc)
+	__emit_error(msg);
+
+      k++;
+      sym_elfs = __str_to_int(argv[k++], msg);
+      sym_elf_len = __str_to_int(argv[k++], msg);
+    }
     else if (__streq(argv[k], "--sym-stdout") || __streq(argv[k], "-sym-stdout")) {
       sym_stdout_flag = 1;
       k++;
@@ -190,8 +201,8 @@ usage: (klee_init_env) [options] [program arguments]\n\
   *argcPtr = new_argc;
   *argvPtr = final_argv;
 
-  klee_init_fds(sym_files, sym_file_len, 
-		sym_stdout_flag, save_all_writes_flag, 
-		fd_fail);
+  klee_init_fds(sym_files, sym_file_len, sym_elfs, sym_elf_len);
+  klee_init_std_fds(sym_file_len, sym_stdout_flag,
+                    save_all_writes_flag, fd_fail);
 }
 

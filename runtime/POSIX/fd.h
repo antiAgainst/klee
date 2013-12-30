@@ -71,9 +71,10 @@ typedef struct {
 extern exe_file_system_t __exe_fs;
 extern exe_sym_env_t __exe_env;
 
-void klee_init_fds(unsigned n_files, unsigned file_length, 
-		   int sym_stdout_flag, int do_all_writes_flag, 
-		   unsigned max_failures);
+void klee_init_std_fds(unsigned file_length, int sym_stdout_flag,
+		   int do_all_writes_flag, unsigned max_failures);
+void klee_init_fds(unsigned n_nfiles, unsigned nfile_length,
+		   unsigned n_efiles, unsigned efile_length);
 void klee_init_env(int *argcPtr, char ***argvPtr);
 
 /* *** */
