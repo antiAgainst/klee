@@ -110,9 +110,15 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
   dfile->contents = malloc(dfile->size);
   klee_make_symbolic(dfile->contents, dfile->size, name);
 
+  /* elf header, section header, program segment header size */
+  unsigned ehsize = sizeof(Elf64_Ehdr);
+  unsigned shsize = sizeof(Elf64_Shdr);
+  unsigned phsize = sizeof(Elf64_Phdr);
+
   /* elf header */
 
   Elf64_Ehdr *ehdr = (Elf64_Ehdr *) dfile->contents;
+
   /* e_ident, bytes not used from EI_PAD (9) */
   klee_assume(ehdr->e_ident[EI_MAG0] == ELFMAG0);
   klee_assume(ehdr->e_ident[EI_MAG1] == ELFMAG1);
@@ -136,49 +142,89 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
   klee_assume(ehdr->e_version < EV_NUM);
   /* e_entry, what to put here? */
   /* e_flags, what to put here? */
-  unsigned ehsize = sizeof(Elf64_Ehdr);
-  unsigned shsize = sizeof(Elf64_Shdr);
-  unsigned phsize = sizeof(Elf64_Phdr);
   /* e_ehsize, size of elf header */
   klee_assume(ehdr->e_ehsize == ehsize);
   /* e_phentsize */
   klee_assume(ehdr->e_phentsize == phsize);
   /* e_phnum */
   klee_assume(ehdr->e_phnum >= 0);
-  klee_assume(ehdr->e_phnum < 10);
+  klee_assume(ehdr->e_phnum < 5);
   /* e_shentsize */
   klee_assume(ehdr->e_shentsize == shsize);
   /* e_shnum, for now we don't want have too many sections */
-  klee_assume(ehdr->e_shnum >= 0);
-  klee_assume(ehdr->e_shnum < 20);
-  /* e_shstrndx, what to put here? */
+  klee_assume(ehdr->e_shnum >= 2);
+  klee_assume(ehdr->e_shnum < 8);
+
+  /* e_shstrndx, we force it is at index 1 */
+  klee_assume(ehdr->e_shstrndx == 1);
+
   /* e_shoff, can be zero, but now just let it appear after elf header */
-  klee_assume(ehdr->e_shoff >= ehsize);
-  /* e_phoff, can be zero, but now just let it appear
-     after section header table */
-  klee_assume(ehdr->e_phoff >= ehsize + ehdr->e_shnum * shsize);
+  klee_assume(ehdr->e_shoff == ehsize);
 
   /* section header table */
 
   Elf64_Shdr *shdrt = (Elf64_Shdr *) ((char *)dfile->contents + ehdr->e_shoff);
   Elf64_Shdr *shdr;
+
+  /* the current available offset for real sections */
+  unsigned curend = ehdr->e_shoff + ehdr->e_shnum * shsize;
+
+  /* 0: null section */
+  shdr = shdrt;
+  klee_assume(shdr->sh_type == SHT_NULL);
+  /* 1: section header string table */
+  shdr = shdrt + 1;
+  klee_assume(shdr->sh_type == SHT_STRTAB);
+  klee_assume(shdr->sh_offset == curend);
+  curend += shdr->sh_size;
+  /* other sections */
   unsigned i;
-  for (i = 0; i < ehdr->e_shnum; ++i) {
+  for (i = 2; i < ehdr->e_shnum; ++i) {
     /* section header */
     shdr = shdrt + i;
     /* sh_name */
     /* sh_type */
-    klee_assume(shdr->sh_type >= SHT_NULL);
+    klee_assume(shdr->sh_type > SHT_NULL);
     klee_assume(shdr->sh_type < SHT_NUM);
     /* sh_flags */
     /* sh_addr */
     /* sh_offset */
+    klee_assume(shdr->sh_offset == curend);
     /* sh_size */
+    curend += shdr->sh_size;
     /* sh_link */
     /* sh_info */
     /* sh_addralign */
     /* sh_entsize */
   }
+
+  /* e_phoff, can be zero, but now just let it appear after the sections */
+  if (ehdr->e_phnum) {
+    klee_assume(ehdr->e_phoff == curend);
+
+    /* program segment header table */
+
+    Elf64_Phdr *phdrt = (Elf64_Phdr *) ((char *)dfile->contents + ehdr->e_phoff);
+    Elf64_Phdr *phdr;
+
+    for (i = 0; i < ehdr->e_phnum; ++i) {
+      /* program segment header */
+      phdr = phdrt + i;
+      /* p_type */
+      klee_assume(phdr->p_type >= PT_NULL);
+      klee_assume(phdr->p_type < PT_NUM);
+      /* p_flags */
+      /* p_offset */
+      /* p_vaddr */
+      /* p_paddr */
+      /* p_filesz */
+      /* p_memsz */
+      /* p_align */
+    }
+  }
+
+  /* make sure we don't have more bytes than the file allows */
+  klee_assume(ehdr->e_phoff + ehdr->e_phnum * phsize < size);
 
   klee_make_symbolic(s, sizeof(*s), sname);
 
