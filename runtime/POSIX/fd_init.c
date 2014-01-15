@@ -147,16 +147,16 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
   /* e_phentsize */
   klee_assume(ehdr->e_phentsize == phsize);
   /* e_phnum */
-  klee_assume(ehdr->e_phnum >= 0);
-  klee_assume(ehdr->e_phnum < 5);
+  klee_assume(ehdr->e_phnum >= 0U);
+  klee_assume(ehdr->e_phnum < 5U);
   /* e_shentsize */
   klee_assume(ehdr->e_shentsize == shsize);
   /* e_shnum, for now we don't want have too many sections */
-  klee_assume(ehdr->e_shnum >= 2);
-  klee_assume(ehdr->e_shnum < 8);
+  klee_assume(ehdr->e_shnum >= 2U);
+  klee_assume(ehdr->e_shnum < 8U);
 
   /* e_shstrndx, we force it is at index 1 */
-  klee_assume(ehdr->e_shstrndx == 1);
+  klee_assume(ehdr->e_shstrndx == 1U);
 
   /* e_shoff, can be zero, but now just let it appear after elf header */
   klee_assume(ehdr->e_shoff == ehsize);
@@ -172,10 +172,13 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
   /* 0: null section */
   shdr = shdrt;
   klee_assume(shdr->sh_type == SHT_NULL);
+  klee_assume(shdr->sh_size == 0U);
   /* 1: section header string table */
   shdr = shdrt + 1;
   klee_assume(shdr->sh_type == SHT_STRTAB);
   klee_assume(shdr->sh_offset == curend);
+  klee_assume(shdr->sh_size > 0U);
+  klee_assume(shdr->sh_size < size - curend);
   curend += shdr->sh_size;
   /* other sections */
   unsigned i;
@@ -191,6 +194,8 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
     /* sh_offset */
     klee_assume(shdr->sh_offset == curend);
     /* sh_size */
+    klee_assume(shdr->sh_size > 0U);
+    klee_assume(shdr->sh_size < size - curend);
     curend += shdr->sh_size;
     /* sh_link */
     /* sh_info */
@@ -198,9 +203,15 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
     /* sh_entsize */
   }
 
+  /* make sure we don't have more bytes than the file allows */
+  klee_assume(curend < size);
+
   /* e_phoff, can be zero, but now just let it appear after the sections */
   if (ehdr->e_phnum) {
     klee_assume(ehdr->e_phoff == curend);
+
+    /* make sure we don't have more bytes than the file allows */
+    klee_assume(ehdr->e_phoff + ehdr->e_phnum * phsize < size);
 
     /* program segment header table */
 
@@ -215,16 +226,16 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
       klee_assume(phdr->p_type < PT_NUM);
       /* p_flags */
       /* p_offset */
+      klee_assume(phdr->p_offset >= 0U);
+      klee_assume(phdr->p_offset < curend);
       /* p_vaddr */
       /* p_paddr */
       /* p_filesz */
       /* p_memsz */
+      //klee_assume(phdr->p_memsz > phdr->p_filesz);
       /* p_align */
     }
   }
-
-  /* make sure we don't have more bytes than the file allows */
-  klee_assume(ehdr->e_phoff + ehdr->e_phnum * phsize < size);
 
   klee_make_symbolic(s, sizeof(*s), sname);
 
