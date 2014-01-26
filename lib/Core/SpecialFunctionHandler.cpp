@@ -87,6 +87,7 @@ HandlerInfo handlerInfo[] = {
   add("klee_merge", handleMerge, false),
   add("klee_prefer_cex", handlePreferCex, false),
   add("klee_print_expr", handlePrintExpr, false),
+  add("klee_print_object_state", handlePrintObjectState, false),
   add("klee_print_range", handlePrintRange, false),
   add("klee_set_forking", handleSetForking, false),
   add("klee_stack_trace", handleStackTrace, false),
@@ -713,5 +714,23 @@ void SpecialFunctionHandler::handleMarkGlobal(ExecutionState &state,
     const MemoryObject *mo = it->first.first;
     assert(!mo->isLocal);
     mo->isGlobal = true;
+  }
+}
+
+void SpecialFunctionHandler::handlePrintObjectState(ExecutionState &state,
+                                                    KInstruction *target,
+                                                    std::vector<ref<Expr> > &arguments) {
+  assert(arguments.size()==2 &&
+      "invalid number of arguments to klee_print_object_state");
+
+  std::string msg_str = readStringAtAddress(state, arguments[0]);
+
+  Executor::ExactResolutionList rl;
+  executor.resolveExact(state, arguments[1], rl, "print_object_state");
+
+  std::cerr << msg_str << ": ";
+  for (Executor::ExactResolutionList::iterator it = rl.begin(),
+      ie = rl.end(); it != ie; ++it) {
+    it->first.second->print();
   }
 }

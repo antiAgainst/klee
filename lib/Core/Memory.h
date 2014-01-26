@@ -207,6 +207,8 @@ public:
   void write32(unsigned offset, uint32_t value);
   void write64(unsigned offset, uint64_t value);
 
+  void print() const;
+
 private:
   const UpdateList &getUpdates() const;
 
@@ -232,8 +234,6 @@ private:
   void markByteFlushed(unsigned offset);
   void markByteUnflushed(unsigned offset);
   void setKnownSymbolic(unsigned offset, Expr *value);
-
-  void print();
 };
   
 } // End klee namespace
