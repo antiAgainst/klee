@@ -89,6 +89,7 @@ HandlerInfo handlerInfo[] = {
   add("klee_print_expr", handlePrintExpr, false),
   add("klee_print_object_state", handlePrintObjectState, false),
   add("klee_print_range", handlePrintRange, false),
+  add("klee_enumerate", handleEnumerate, false),
   add("klee_set_forking", handleSetForking, false),
   add("klee_stack_trace", handleStackTrace, false),
   add("klee_warning", handleWarning, false),
@@ -732,5 +733,54 @@ void SpecialFunctionHandler::handlePrintObjectState(ExecutionState &state,
   for (Executor::ExactResolutionList::iterator it = rl.begin(),
       ie = rl.end(); it != ie; ++it) {
     it->first.second->print();
+  }
+}
+
+void SpecialFunctionHandler::handleEnumerate(ExecutionState &state,
+                                             KInstruction *target,
+                                             std::vector<ref<Expr> > &arguments) {
+  assert(arguments.size()==3 &&
+      "invald number of arguments to klee_enumerate");
+
+  assert(isa<ConstantExpr>(arguments[0]) &&
+      "expect constant address argument to klee_enumerate");
+  assert(isa<ConstantExpr>(arguments[1]) &&
+      "expect constant size argument to klee_enumerate");
+  assert(isa<ConstantExpr>(arguments[2]) &&
+      "expect constant address argument to klee_enumerate");
+
+  ObjectPair choiceOP;
+  if (!state.addressSpace.resolveOne(cast<ConstantExpr>(arguments[2]), choiceOP))
+    assert(0 && "XXX multiple resolution unhandled");
+  const ObjectState *choiceOS = choiceOP.second;
+
+  ObjectPair targetOP;
+  if (!state.addressSpace.resolveOne(cast<ConstantExpr>(arguments[0]), targetOP))
+    assert(0 && "XXX multiple resolution unhandled");
+  const MemoryObject *targetMO = targetOP.first;
+  const ObjectState *targetOS = targetOP.second;
+
+  Expr::Width W = Context::get().getPointerWidth();
+  uint8_t N = cast<ConstantExpr>(arguments[1])->getZExtValue(8);
+  uint8_t i, j;
+
+  // Prepare N ExecutionStates.
+  std::vector< ref<Expr> > conditions;
+  for (i = 0; i < N; ++i)
+    conditions.push_back(ConstantExpr::create(1, Expr::Bool));
+  std::vector<ExecutionState*> branches;
+  executor.branch(state, conditions, branches);
+
+  // Write each choice into each ExecutionState's target variable.
+  for (i = 0; i < N; ++i) {
+    ref<Expr> choiceAddr = choiceOS->read(i * W / 8, W);
+    std::string choice = readStringAtAddress(state, choiceAddr);
+
+    ExecutionState *es = branches[i];
+    ObjectState *cur = es->addressSpace.getWriteable(targetMO, targetOS);
+    for (j = 0; j < choice.length(); ++j)
+      cur->write8(j, choice[j]);
+    for (; j < targetMO->size; ++j)
+      cur->write8(j, 0);
   }
 }

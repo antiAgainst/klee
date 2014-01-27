@@ -90,6 +90,7 @@ namespace klee {
     HANDLER(handlePrintExpr);
     HANDLER(handlePrintObjectState);
     HANDLER(handlePrintRange);
+    HANDLER(handleEnumerate);
     HANDLER(handleRange);
     HANDLER(handleRealloc);
     HANDLER(handleReportError);

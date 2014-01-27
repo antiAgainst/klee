@@ -82,6 +82,12 @@ extern "C" {
    * It makes n be symbolic and returns: caller must compare N times.
    */
   uintptr_t klee_choose(uintptr_t n);
+
+  /* substitute the content in target memory \arg addr with each of the \arg n
+   * possible choices from \arg choices. It results in \arg n execution states
+   * including the current one.
+   */
+  void klee_enumerate(void *addr, uint8_t n, const char *choices[]);
   
   /* special klee assert macro. this assert should be used when path consistency
    * across platforms is desired (e.g., in tests).
