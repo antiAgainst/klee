@@ -132,6 +132,7 @@ public:
   void popFrame();
 
   void addSymbolic(const MemoryObject *mo, const Array *array);
+  bool isSymbolic(const MemoryObject *mo);
   void addConstraint(ref<Expr> e) { 
     constraints.addConstraint(e); 
   }
