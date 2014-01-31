@@ -77,7 +77,7 @@ static inline int max(int a, int b) {
   return a > b ? a : b;
 }
 
-static char *__get_sym_str_choice(uint8_t numChoice,
+static char *__get_sym_enum(uint8_t numChoice,
     const char *choices[], char *name) {
   int len = 0, i;
   for (i=0; i<numChoice; i++)
@@ -117,9 +117,12 @@ void klee_init_env(int* argcPtr, char*** argvPtr) {
   char** final_argv;
   char sym_arg_name[5] = "arg";
   unsigned sym_arg_num = 0;
+  char sym_enum_name[6] = "enum";
+  unsigned sym_enum_num = 0;
   int k=0, i;
 
   sym_arg_name[4] = '\0';
+  sym_enum_name[5] = '\0';
 
   // Recognize --help when it is the sole argument.
   if (argc == 2 && __streq(argv[1], "--help")) {
@@ -128,7 +131,7 @@ usage: (klee_init_env) [options] [program arguments]\n\
   -sym-arg <N>              - Replace by a symbolic argument with length N\n\
   -sym-args <MIN> <MAX> <N> - Replace by at least MIN arguments and at most\n\
                               MAX arguments, each with maximum length N\n\
-  -sym-arg-choice <N> <CHOICE>...\n\
+  -sym-enum <N> <CHOICE>...\n\
                             - Replace by each of the N possible CHOICE\n\
   -sym-files <NUM> <N>      - Make stdin and up to NUM symbolic files, each\n\
                               with maximum size N.\n\
@@ -169,9 +172,9 @@ usage: (klee_init_env) [options] [program arguments]\n\
                   1024);
       }
     }
-    else if (__streq(argv[k], "--sym-arg-choice") || __streq(argv[k], "-sym-arg-chice")) {
+    else if (__streq(argv[k], "--sym-enum") || __streq(argv[k], "-sym-enum")) {
       const char* msg =
-        "--sym-arg-choices expects at least two arguments <num-choices> <choice>...";
+        "--sym-enum expects at least two arguments <num-choices> <choice>...";
 
       if (k+2 >= argc)
 	__emit_error(msg);
@@ -181,9 +184,9 @@ usage: (klee_init_env) [options] [program arguments]\n\
       for (i=0; i < n_choice; i++)
         choices[i] = argv[k++];
 
-      sym_arg_name[3] = '0' + sym_arg_num++;
+      sym_enum_name[4] = '0' + sym_enum_num++;
       __add_arg(&new_argc, new_argv,
-                __get_sym_str_choice(n_choice, choices, sym_arg_name),
+                __get_sym_enum(n_choice, choices, sym_enum_name),
                 1024);
     }
     else if (__streq(argv[k], "--sym-files") || __streq(argv[k], "-sym-files")) {
