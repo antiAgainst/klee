@@ -222,6 +222,8 @@ private:
   sys::Path m_outputDirectory;
   unsigned m_testIndex;  // number of tests written so far
   unsigned m_pathsExplored; // number of paths explored so far
+  uint64_t m_maxInstInTestCase;
+  uint64_t m_totInstInTestCase;
 
   // used for writing .ktest files
   int m_argc;
@@ -234,6 +236,8 @@ public:
   std::ostream &getInfoStream() const { return *m_infoFile; }
   unsigned getNumTestCases() { return m_testIndex; }
   unsigned getNumPathsExplored() { return m_pathsExplored; }
+  uint64_t getMaxInstInTestCase() { return m_maxInstInTestCase; }
+  uint64_t getTotInstInTestCase() { return m_totInstInTestCase; }
   void incPathsExplored() { m_pathsExplored++; }
 
   void setInterpreter(Interpreter *i);
@@ -267,6 +271,8 @@ KleeHandler::KleeHandler(int argc, char **argv)
     m_outputDirectory(),
     m_testIndex(0),
     m_pathsExplored(0),
+    m_maxInstInTestCase(0),
+    m_totInstInTestCase(0),
     m_argc(argc),
     m_argv(argv) {
 
@@ -424,6 +430,11 @@ void KleeHandler::processTestCase(const ExecutionState &state,
 
     if (!success)
       klee_warning("unable to get symbolic solution, losing test case");
+
+    /* Update instruction metrics in test cases */
+    m_totInstInTestCase += state.numInstExecuted;
+    if (state.numInstExecuted > m_maxInstInTestCase)
+      m_maxInstInTestCase = state.numInstExecuted;
 
     double start_time = util::getWallTime();
 
@@ -1493,6 +1504,7 @@ int main(int argc, char **argv, char **envp) {
     << "KLEE: done: query cex = " << queryCounterexamples << "\n";
 
   std::stringstream stats;
+
   stats << "\n";
   stats << "KLEE: done: total instructions = " 
         << instructions << "\n";
@@ -1500,6 +1512,10 @@ int main(int argc, char **argv, char **envp) {
         << handler->getNumPathsExplored() << "\n";
   stats << "KLEE: done: generated tests = " 
         << handler->getNumTestCases() << "\n";
+  stats << "KLEE: done: total instructions in testcase = "
+        << handler->getTotInstInTestCase() << "\n";
+  stats << "KLEE: done: max instructions in testcase = "
+        << handler->getMaxInstInTestCase() << "\n";
   std::cerr << stats.str();
   handler->getInfoStream() << stats.str();
 
