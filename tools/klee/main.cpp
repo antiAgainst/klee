@@ -1487,6 +1487,12 @@ int main(int argc, char **argv, char **envp) {
     *theStatisticManager->getStatisticByName("Instructions");
   uint64_t forks = 
     *theStatisticManager->getStatisticByName("Forks");
+  uint64_t forkTime =
+    *theStatisticManager->getStatisticByName("ForkTime");
+  uint64_t resolveTime =
+    *theStatisticManager->getStatisticByName("ResolveTime");
+  uint64_t solverTime =
+    *theStatisticManager->getStatisticByName("SolverTime");
 
   handler->getInfoStream() 
     << "KLEE: done: explored paths = " << 1 + forks << "\n";
@@ -1503,6 +1509,11 @@ int main(int argc, char **argv, char **envp) {
     << "KLEE: done: invalid queries = " << queriesInvalid << "\n"
     << "KLEE: done: query cex = " << queryCounterexamples << "\n";
 
+  handler->getInfoStream()
+    << "KLEE: done: fork time = " << forkTime << "\n"
+    << "KLEE: done: resolve time = " << resolveTime << "\n"
+    << "KLEE: done: solver time = " << solverTime << "\n";
+
   std::stringstream stats;
 
   stats << "\n";
@@ -1512,9 +1523,9 @@ int main(int argc, char **argv, char **envp) {
         << handler->getNumPathsExplored() << "\n";
   stats << "KLEE: done: generated tests = " 
         << handler->getNumTestCases() << "\n";
-  stats << "KLEE: done: total instructions in testcase = "
+  stats << "KLEE: done: total inst. in testcase = "
         << handler->getTotInstInTestCase() << "\n";
-  stats << "KLEE: done: max instructions in testcase = "
+  stats << "KLEE: done: max inst. in testcase = "
         << handler->getMaxInstInTestCase() << "\n";
   std::cerr << stats.str();
   handler->getInfoStream() << stats.str();
