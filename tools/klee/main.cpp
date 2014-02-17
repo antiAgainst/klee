@@ -1510,9 +1510,9 @@ int main(int argc, char **argv, char **envp) {
     << "KLEE: done: query cex = " << queryCounterexamples << "\n";
 
   handler->getInfoStream()
-    << "KLEE: done: fork time = " << forkTime << "\n"
-    << "KLEE: done: resolve time = " << resolveTime << "\n"
-    << "KLEE: done: solver time = " << solverTime << "\n";
+    << "KLEE: done: fork time = " << forkTime << "us\n"
+    << "KLEE: done: resolve time = " << resolveTime << "us\n"
+    << "KLEE: done: solver time = " << solverTime << "us\n";
 
   std::stringstream stats;
 
