@@ -12,7 +12,6 @@
 
 #include "stdint.h"
 #include "stddef.h"
-#include "stdbool.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -86,13 +85,9 @@ extern "C" {
 
   /* substitute the content in target memory \arg addr with each of the \arg n
    * possible choices from \arg choices. It results in \arg n execution states
-   * including the current one. \arg exhaustive means whether the choices are
-   * exhaustive; if not, a symbolic copy of the current state is retained.
+   * including the current one.
    */
-  void klee_enumerate(void *addr,
-		  uint8_t n,
-		  const char *choices[],
-		  bool exhaustive);
+  void klee_enumerate(void *addr, uint8_t n, const char *choices[]);
   
   /* special klee assert macro. this assert should be used when path consistency
    * across platforms is desired (e.g., in tests).

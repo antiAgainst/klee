@@ -739,7 +739,7 @@ void SpecialFunctionHandler::handlePrintObjectState(ExecutionState &state,
 void SpecialFunctionHandler::handleEnumerate(ExecutionState &state,
                                              KInstruction *target,
                                              std::vector<ref<Expr> > &arguments) {
-  assert(arguments.size()==4 &&
+  assert(arguments.size()==3 &&
       "invald number of arguments to klee_enumerate");
 
   assert(isa<ConstantExpr>(arguments[0]) &&
@@ -748,8 +748,6 @@ void SpecialFunctionHandler::handleEnumerate(ExecutionState &state,
       "expect constant size argument to klee_enumerate");
   assert(isa<ConstantExpr>(arguments[2]) &&
       "expect constant address argument to klee_enumerate");
-  assert(isa<ConstantExpr>(arguments[3]) && arguments[3]->getWidth() == Expr::Bool &&
-      "expect constant bool argument to klee_enumerate");
 
   ObjectPair choiceOP;
   if (!state.addressSpace.resolveOne(cast<ConstantExpr>(arguments[2]), choiceOP))
@@ -792,11 +790,6 @@ void SpecialFunctionHandler::handleEnumerate(ExecutionState &state,
     }
     conditions.push_back(constraint);
   }
-  // If the choices are not exhaustive, we need to keep a
-  // symbolic copy of the current state.
-  if (!arguments[3]->isTrue())
-    conditions.push_back(ConstantExpr::create(1, Expr::Bool));
-
   std::vector<ExecutionState*> branches;
   executor.branch(state, conditions, branches);
 }
