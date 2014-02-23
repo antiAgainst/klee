@@ -167,17 +167,17 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
     klee_assume(ehdr->e_ehsize == ehsize);
     /* e_phentsize, e_phnum */
     klee_assume(ehdr->e_phentsize == phsize);
-    klee_assume(ehdr->e_phnum >= 0U);
+    //klee_assume(ehdr->e_phnum >= 0U);
     klee_assume(ehdr->e_phnum <= 3U);
     /* e_shentsize, e_shnum */
     klee_assume(ehdr->e_shentsize == shsize);
-    klee_assume(ehdr->e_shnum >= 0U);
+    //klee_assume(ehdr->e_shnum >= 0U);
     klee_assume(ehdr->e_shnum <= 5U);
     if (ehdr->e_shnum) {
       /* e_shoff */
       klee_assume(ehdr->e_shoff == ehsize);
       /* e_shstrndx */
-      if (ehdr->e_shnum > 1)
+      if (ehdr->e_shnum > 1U)
         klee_assume(ehdr->e_shstrndx == 1U); /* FORCE */
       else
         klee_assume(ehdr->e_shstrndx == SHN_UNDEF);
@@ -207,7 +207,7 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
         shdr = shdrt + 1;
         klee_assume(shdr->sh_type == SHT_STRTAB);
         klee_assume(shdr->sh_offset == offset);
-        klee_assume(shdr->sh_size == 32U);
+        klee_assume(shdr->sh_size < size - offset);
         offset += shdr->sh_size;
       }
       /* other sections */
@@ -221,7 +221,7 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
         /* sh_offset */
         klee_assume(shdr->sh_offset == offset);
         /* sh_size */
-        klee_assume(shdr->sh_size == 32U);
+        klee_assume(shdr->sh_size < size - offset);
         offset += shdr->sh_size;
         /* sh_link, sh_info */ /* MISSING */
         /* sh_addralign, sh_entsize */ /* MISSING */
@@ -305,17 +305,17 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
     klee_assume(ehdr32->e_ehsize == ehsize);
     /* e_phentsize, e_phnum */
     klee_assume(ehdr32->e_phentsize == phsize);
-    klee_assume(ehdr32->e_phnum >= 0U);
+    //klee_assume(ehdr32->e_phnum >= 0U);
     klee_assume(ehdr32->e_phnum <= 3U);
     /* e_shentsize, e_shnum */
     klee_assume(ehdr32->e_shentsize == shsize);
-    klee_assume(ehdr32->e_shnum >= 0U);
+    //klee_assume(ehdr32->e_shnum >= 0U);
     klee_assume(ehdr32->e_shnum <= 5U);
     if (ehdr32->e_shnum) {
       /* e_shoff */
       klee_assume(ehdr32->e_shoff == ehsize);
       /* e_shstrndx */
-      if (ehdr32->e_shnum > 1)
+      if (ehdr32->e_shnum > 1U)
         klee_assume(ehdr32->e_shstrndx == 1U); /* FORCE */
       else
         klee_assume(ehdr32->e_shstrndx == SHN_UNDEF);
@@ -345,7 +345,7 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
         shdr = shdrt + 1;
         klee_assume(shdr->sh_type == SHT_STRTAB);
         klee_assume(shdr->sh_offset == offset);
-        klee_assume(shdr->sh_size == 32U);
+        klee_assume(shdr->sh_size < size - offset);
         offset += shdr->sh_size;
       }
       /* other sections */
@@ -359,7 +359,7 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
         /* sh_offset */
         klee_assume(shdr->sh_offset == offset);
         /* sh_size */
-        klee_assume(shdr->sh_size == 32U);
+        klee_assume(shdr->sh_size < size - offset);
         offset += shdr->sh_size;
         /* sh_link, sh_info */ /* MISSING */
         /* sh_addralign, sh_entsize */ /* MISSING */
