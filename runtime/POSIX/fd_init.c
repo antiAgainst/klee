@@ -121,133 +121,115 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
   /* first determine the class: 32-bit or 64-bit */
   klee_assume(ehdr->e_ident[EI_CLASS] < ELFCLASSNUM);
 
-/* klee_assume()s for e_ident in elf header, excluding EI_CLASS */
-#define ELF_ASSUME_EHDR_IDENT(ehdr) \
-  do { \
-    klee_assume(ehdr->e_ident[EI_MAG0] == ELFMAG0); \
-    klee_assume(ehdr->e_ident[EI_MAG1] == ELFMAG1); \
-    klee_assume(ehdr->e_ident[EI_MAG2] == ELFMAG2); \
-    klee_assume(ehdr->e_ident[EI_MAG3] == ELFMAG3);\
-    klee_assume(ehdr->e_ident[EI_DATA] < ELFDATANUM); \
-    klee_assume(ehdr->e_ident[EI_VERSION] == EV_CURRENT); \
-    /* klee_assume(ehdr->e_ident[EI_OSABI] >= ELFOSABI_NONE); */ \
-    klee_assume((ehdr->e_ident[EI_OSABI] <= ELFOSABI_GNU) | \
-                ((ehdr->e_ident[EI_OSABI] >= ELFOSABI_SOLARIS) & \
-                 (ehdr->e_ident[EI_OSABI] <= ELFOSABI_OPENBSD)) | \
-                (ehdr->e_ident[EI_OSABI] == ELFOSABI_ARM_AEABI) | \
-                (ehdr->e_ident[EI_OSABI] == ELFOSABI_ARM) | \
-                (ehdr->e_ident[EI_OSABI] == ELFOSABI_STANDALONE)); \
-    /* EI_ABIVERSION, what to put here? */ \
-    /* EI_PAD, not used from here */ \
-  } while (0)
-
-/* klee_assume()s for e_type, e_machine, e_version in elf header */
-#define ELF_ASSUME_EHDR_TYPE_MACHINE_VERSION(ptr) \
-  do { \
-    klee_assume(ptr->e_type < ET_NUM); \
-    klee_assume(ptr->e_machine < EM_NUM); \
-    klee_assume(ptr->e_version < EV_NUM); \
-  } while (0)
-
-/* klee_assume()s for program segment header table in elf header */
-#define ELF_ASSUME_EHDR_PHT(ptr, size, min, max) \
-  do { \
-    klee_assume(ptr->e_phentsize == size); \
-    /* klee_assume(ptr->e_phnum >= min); */ \
-    klee_assume(ptr->e_phnum <= max); \
-  } while (0)
-
-/* klee_assume()s for section header table in elf header */
-#define ELF_ASSUME_EHDR_SHT(ptr, size, min, max) \
-  do { \
-    klee_assume(ptr->e_shentsize == size); \
-    klee_assume(ptr->e_shnum >= min); \
-    klee_assume(ptr->e_shnum <= max); \
-  } while (0)
-
-/* klee_assume()s for section header table */
-#define ELF_ASSUME_SHT(ehdr, shdrt, shdr, size, offset) \
-  do { \
-    /* 0: null section */ \
-    shdr = shdrt; \
-    klee_assume(shdr->sh_type == SHT_NULL); \
-    klee_assume(shdr->sh_size == 0U); \
-    /* 1: section header string table */ \
-    shdr = shdrt + 1; \
-    klee_assume(shdr->sh_type == SHT_STRTAB); \
-    klee_assume(shdr->sh_offset == offset); \
-    klee_assume(shdr->sh_size == size); \
-    offset += shdr->sh_size; \
-    /* other sections */ \
-    for (i = 2; i < ehdr->e_shnum; ++i) { \
-      /* section header */ \
-      shdr = shdrt + i; \
-      /* sh_name */ \
-      /* sh_type */ \
-      klee_assume(shdr->sh_type > SHT_NULL); \
-      klee_assume(shdr->sh_type < SHT_NUM); \
-      /* sh_flags */ \
-      /* sh_addr */ \
-      /* sh_offset */ \
-      klee_assume(shdr->sh_offset == offset); \
-      /* sh_size */ \
-      klee_assume(shdr->sh_size == size); \
-      offset += shdr->sh_size; \
-      /* sh_link */ \
-      /* sh_info */ \
-      /* sh_addralign */ \
-      /* sh_entsize */ \
-    } \
-  } while (0)
-
-/* klee_assume()s for program segment header table */
-#define ELF_ASSUME_PHT(ehdr, phdrt, phdr, secstart, secend) \
-  for (i = 0; i < ehdr->e_phnum; ++i) { \
-    /* program segment header */ \
-    phdr = phdrt + i; \
-    /* p_type */ \
-    klee_assume(phdr->p_type < PT_NUM); \
-    /* p_flags */ \
-    /* p_offset */ \
-    klee_assume(phdr->p_offset >= secstart); \
-    klee_assume(phdr->p_offset < secend); \
-    /* p_vaddr */ \
-    /* p_paddr */ \
-    /* p_filesz */ \
-    /* p_memsz */ \
-    /* p_align */ \
-  }
-
   if (ehdr->e_ident[EI_CLASS] == ELFCLASS64) {
     ehsize = sizeof(Elf64_Ehdr);
     shsize = sizeof(Elf64_Shdr);
     phsize = sizeof(Elf64_Phdr);
 
-    ELF_ASSUME_EHDR_IDENT(ehdr);
-    ELF_ASSUME_EHDR_TYPE_MACHINE_VERSION(ehdr);
-    /* e_entry, what to put here? */
-    /* e_shoff */
-    klee_assume(ehdr->e_shoff == ehsize);
-    /* e_flags, what to put here? */
-    /* e_ehsize, size of elf header */
-    klee_assume(ehdr->e_ehsize == ehsize);
-    ELF_ASSUME_EHDR_PHT(ehdr, phsize, 0U, 3U);
-    ELF_ASSUME_EHDR_SHT(ehdr, shsize, 2U, 5U);
-    /* e_shstrndx, we force it to be at index 1 */
-    klee_assume(ehdr->e_shstrndx == 1U);
+    /* e_ident[] */
+    klee_assume(ehdr->e_ident[EI_MAG0] == ELFMAG0);
+    klee_assume(ehdr->e_ident[EI_MAG1] == ELFMAG1);
+    klee_assume(ehdr->e_ident[EI_MAG2] == ELFMAG2);
+    klee_assume(ehdr->e_ident[EI_MAG3] == ELFMAG3);
+    klee_assume(ehdr->e_ident[EI_DATA] < ELFDATANUM);
+    klee_assume(ehdr->e_ident[EI_VERSION] == EV_CURRENT);
+    klee_assume(
+      (ehdr->e_ident[EI_OSABI] == ELFOSABI_NONE) |
+      (ehdr->e_ident[EI_OSABI] == ELFOSABI_SYSV) |
+      (ehdr->e_ident[EI_OSABI] == ELFOSABI_HPUX) |
+      (ehdr->e_ident[EI_OSABI] == ELFOSABI_NETBSD) |
+      (ehdr->e_ident[EI_OSABI] == ELFOSABI_GNU) |
+      (ehdr->e_ident[EI_OSABI] == ELFOSABI_LINUX) |
+      (ehdr->e_ident[EI_OSABI] == ELFOSABI_SOLARIS) |
+      (ehdr->e_ident[EI_OSABI] == ELFOSABI_AIX) |
+      (ehdr->e_ident[EI_OSABI] == ELFOSABI_IRIX) |
+      (ehdr->e_ident[EI_OSABI] == ELFOSABI_FREEBSD) |
+      (ehdr->e_ident[EI_OSABI] == ELFOSABI_TRU64) |
+      (ehdr->e_ident[EI_OSABI] == ELFOSABI_MODESTO) |
+      (ehdr->e_ident[EI_OSABI] == ELFOSABI_OPENBSD) |
+      (ehdr->e_ident[EI_OSABI] == ELFOSABI_ARM_AEABI) |
+      (ehdr->e_ident[EI_OSABI] == ELFOSABI_ARM) |
+      (ehdr->e_ident[EI_OSABI] == ELFOSABI_STANDALONE)
+    );
 
-    /* section header table */
-    Elf64_Shdr *shdrt = (Elf64_Shdr *) ((char *)dfile->contents + ehdr->e_shoff);
-    Elf64_Shdr *shdr;
+    /* e_type, e_machine, e_version */
+    klee_assume(
+        (ehdr->e_type < ET_NUM) |
+        ((ehdr->e_type >= ET_LOOS) & (ehdr->e_type <= ET_HIOS)) |
+        ((ehdr->e_type >= ET_LOPROC) & (ehdr->e_type <= ET_HIPROC))
+    );
+    klee_assume(ehdr->e_machine < EM_NUM); /* INCOMPLETE */
+    klee_assume(ehdr->e_version < EV_NUM);
+    /* e_entry */ /* MISSING */
+    /* e_phoff, e_shoff */ /* SEE BELOW */
+    /* e_flags */ /* MISSING */
+    /* e_ehsize */
+    klee_assume(ehdr->e_ehsize == ehsize);
+    /* e_phentsize, e_phnum */
+    klee_assume(ehdr->e_phentsize == phsize);
+    klee_assume(ehdr->e_phnum >= 0U);
+    klee_assume(ehdr->e_phnum <= 3U);
+    /* e_shentsize, e_shnum */
+    klee_assume(ehdr->e_shentsize == shsize);
+    klee_assume(ehdr->e_shnum >= 0U);
+    klee_assume(ehdr->e_shnum <= 5U);
+    if (ehdr->e_shnum) {
+      /* e_shoff */
+      klee_assume(ehdr->e_shoff == ehsize);
+      /* e_shstrndx */
+      if (ehdr->e_shnum > 1)
+        klee_assume(ehdr->e_shstrndx == 1U); /* FORCE */
+      else
+        klee_assume(ehdr->e_shstrndx == SHN_UNDEF);
+    } else {
+      /* e_shoff */
+      klee_assume(ehdr->e_shoff == 0U);
+      /* e_shstrndx */
+      klee_assume(ehdr->e_shstrndx == SHN_UNDEF);
+    }
 
     /* the current available offset for real sections */
     unsigned offset = ehdr->e_shoff + ehdr->e_shnum * shsize;
-    unsigned secstart = offset;
+    unsigned section_start = offset;
 
-    ELF_ASSUME_SHT(ehdr, shdrt, shdr, 32U, offset);
+    if (ehdr->e_shnum) {
+      /* section header table */
+      Elf64_Shdr *shdrt = (Elf64_Shdr *) ((char *)dfile->contents + ehdr->e_shoff);
+      Elf64_Shdr *shdr;
+
+      /* 0: null section */
+      shdr = shdrt;
+      klee_assume(shdr->sh_type == SHT_NULL);
+      klee_assume(shdr->sh_size == 0U);
+
+      /* 1: section header string table */
+      if (ehdr->e_shnum > 1U) {
+        shdr = shdrt + 1;
+        klee_assume(shdr->sh_type == SHT_STRTAB);
+        klee_assume(shdr->sh_offset == offset);
+        klee_assume(shdr->sh_size == 32U);
+        offset += shdr->sh_size;
+      }
+      /* other sections */
+      for (i = 2; i < ehdr->e_shnum; ++i) {
+        shdr = shdrt + i;
+        /* sh_name */ /* MISSING */
+        /* sh_type */
+        klee_assume(shdr->sh_type > SHT_NULL);
+        klee_assume(shdr->sh_type < SHT_NUM);
+        /* sh_flags, sh_addr */ /* MISSING */
+        /* sh_offset */
+        klee_assume(shdr->sh_offset == offset);
+        /* sh_size */
+        klee_assume(shdr->sh_size == 32U);
+        offset += shdr->sh_size;
+        /* sh_link, sh_info */ /* MISSING */
+        /* sh_addralign, sh_entsize */ /* MISSING */
+      }
+    }
 
     /* now offset is the byte after all real sections */
-    unsigned secend = offset;
+    unsigned section_end = offset;
     /* make sure we don't have more bytes than the file allows */
     klee_assume(offset <= size);
 
@@ -261,7 +243,18 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
       Elf64_Phdr *phdrt = (Elf64_Phdr *) ((char *)dfile->contents + ehdr->e_phoff);
       Elf64_Phdr *phdr;
 
-      ELF_ASSUME_PHT(ehdr, phdrt, phdr, secstart, secend);
+      for (i = 0; i < ehdr->e_phnum; ++i) {
+        phdr = phdrt + i;
+        /* p_type */
+        klee_assume(phdr->p_type < PT_NUM);
+        /* p_flags */ /* MISSING */
+        /* p_offset */
+        klee_assume(phdr->p_offset >= section_start);
+        klee_assume(phdr->p_offset < section_end);
+        /* p_vaddr, p_paddr */ /* MISSING */
+        /* p_filesz, p_memsz */ /* MISSING */
+        /* p_align */ /* MISSING */
+      }
     }
   } else {
     ehsize = sizeof(Elf32_Ehdr);
@@ -271,31 +264,110 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
     /* type cast to 32-bit layout */
     Elf32_Ehdr *ehdr32 = (Elf32_Ehdr *) dfile->contents;
 
-    ELF_ASSUME_EHDR_IDENT(ehdr32);
-    ELF_ASSUME_EHDR_TYPE_MACHINE_VERSION(ehdr32);
-    /* e_entry, what to put here? */
-    /* e_shoff */
-    klee_assume(ehdr32->e_shoff == ehsize);
-    /* e_flags, what to put here? */
-    /* e_ehsize, size of elf header */
-    klee_assume(ehdr32->e_ehsize == ehsize);
-    ELF_ASSUME_EHDR_PHT(ehdr32, phsize, 0U, 3U);
-    ELF_ASSUME_EHDR_SHT(ehdr32, shsize, 2U, 5U);
-    /* e_shstrndx, we force it to be at index 1 */
-    klee_assume(ehdr32->e_shstrndx == 1U);
+    /* e_ident[] */
+    klee_assume(ehdr32->e_ident[EI_MAG0] == ELFMAG0);
+    klee_assume(ehdr32->e_ident[EI_MAG1] == ELFMAG1);
+    klee_assume(ehdr32->e_ident[EI_MAG2] == ELFMAG2);
+    klee_assume(ehdr32->e_ident[EI_MAG3] == ELFMAG3);
+    klee_assume(ehdr32->e_ident[EI_DATA] < ELFDATANUM);
+    klee_assume(ehdr32->e_ident[EI_VERSION] == EV_CURRENT);
+    klee_assume(
+      (ehdr32->e_ident[EI_OSABI] == ELFOSABI_NONE) |
+      (ehdr32->e_ident[EI_OSABI] == ELFOSABI_SYSV) |
+      (ehdr32->e_ident[EI_OSABI] == ELFOSABI_HPUX) |
+      (ehdr32->e_ident[EI_OSABI] == ELFOSABI_NETBSD) |
+      (ehdr32->e_ident[EI_OSABI] == ELFOSABI_GNU) |
+      (ehdr32->e_ident[EI_OSABI] == ELFOSABI_LINUX) |
+      (ehdr32->e_ident[EI_OSABI] == ELFOSABI_SOLARIS) |
+      (ehdr32->e_ident[EI_OSABI] == ELFOSABI_AIX) |
+      (ehdr32->e_ident[EI_OSABI] == ELFOSABI_IRIX) |
+      (ehdr32->e_ident[EI_OSABI] == ELFOSABI_FREEBSD) |
+      (ehdr32->e_ident[EI_OSABI] == ELFOSABI_TRU64) |
+      (ehdr32->e_ident[EI_OSABI] == ELFOSABI_MODESTO) |
+      (ehdr32->e_ident[EI_OSABI] == ELFOSABI_OPENBSD) |
+      (ehdr32->e_ident[EI_OSABI] == ELFOSABI_ARM_AEABI) |
+      (ehdr32->e_ident[EI_OSABI] == ELFOSABI_ARM) |
+      (ehdr32->e_ident[EI_OSABI] == ELFOSABI_STANDALONE)
+    );
 
-    /* section header table */
-    Elf32_Shdr *shdrt = (Elf32_Shdr *) ((char *)dfile->contents + ehdr32->e_shoff);
-    Elf32_Shdr *shdr;
+    /* e_type, e_machine, e_version */
+    klee_assume(
+        (ehdr32->e_type < ET_NUM) |
+        ((ehdr32->e_type >= ET_LOOS) & (ehdr32->e_type <= ET_HIOS)) |
+        ((ehdr32->e_type >= ET_LOPROC) & (ehdr32->e_type <= ET_HIPROC))
+    );
+    klee_assume(ehdr32->e_machine < EM_NUM); /* INCOMPLETE */
+    klee_assume(ehdr32->e_version < EV_NUM);
+    /* e_entry */ /* MISSING */
+    /* e_phoff, e_shoff */ /* SEE BELOW */
+    /* e_flags */ /* MISSING */
+    /* e_ehsize */
+    klee_assume(ehdr32->e_ehsize == ehsize);
+    /* e_phentsize, e_phnum */
+    klee_assume(ehdr32->e_phentsize == phsize);
+    klee_assume(ehdr32->e_phnum >= 0U);
+    klee_assume(ehdr32->e_phnum <= 3U);
+    /* e_shentsize, e_shnum */
+    klee_assume(ehdr32->e_shentsize == shsize);
+    klee_assume(ehdr32->e_shnum >= 0U);
+    klee_assume(ehdr32->e_shnum <= 5U);
+    if (ehdr32->e_shnum) {
+      /* e_shoff */
+      klee_assume(ehdr32->e_shoff == ehsize);
+      /* e_shstrndx */
+      if (ehdr32->e_shnum > 1)
+        klee_assume(ehdr32->e_shstrndx == 1U); /* FORCE */
+      else
+        klee_assume(ehdr32->e_shstrndx == SHN_UNDEF);
+    } else {
+      /* e_shoff */
+      klee_assume(ehdr32->e_shoff == 0U);
+      /* e_shstrndx */
+      klee_assume(ehdr32->e_shstrndx == SHN_UNDEF);
+    }
 
     /* the current available offset for real sections */
     unsigned offset = ehdr32->e_shoff + ehdr32->e_shnum * shsize;
-    unsigned secstart = offset;
+    unsigned section_start = offset;
 
-    ELF_ASSUME_SHT(ehdr32, shdrt, shdr, 32U, offset);
+    if (ehdr32->e_shnum) {
+      /* section header table */
+      Elf32_Shdr *shdrt = (Elf32_Shdr *) ((char *)dfile->contents + ehdr32->e_shoff);
+      Elf32_Shdr *shdr;
+
+      /* 0: null section */
+      shdr = shdrt;
+      klee_assume(shdr->sh_type == SHT_NULL);
+      klee_assume(shdr->sh_size == 0U);
+
+      /* 1: section header string table */
+      if (ehdr32->e_shnum > 1U) {
+        shdr = shdrt + 1;
+        klee_assume(shdr->sh_type == SHT_STRTAB);
+        klee_assume(shdr->sh_offset == offset);
+        klee_assume(shdr->sh_size == 32U);
+        offset += shdr->sh_size;
+      }
+      /* other sections */
+      for (i = 2; i < ehdr32->e_shnum; ++i) {
+        shdr = shdrt + i;
+        /* sh_name */ /* MISSING */
+        /* sh_type */
+        klee_assume(shdr->sh_type > SHT_NULL);
+        klee_assume(shdr->sh_type < SHT_NUM);
+        /* sh_flags, sh_addr */ /* MISSING */
+        /* sh_offset */
+        klee_assume(shdr->sh_offset == offset);
+        /* sh_size */
+        klee_assume(shdr->sh_size == 32U);
+        offset += shdr->sh_size;
+        /* sh_link, sh_info */ /* MISSING */
+        /* sh_addralign, sh_entsize */ /* MISSING */
+      }
+    }
 
     /* now offset is the byte after all real sections */
-    unsigned secend = offset;
+    unsigned section_end = offset;
     /* make sure we don't have more bytes than the file allows */
     klee_assume(offset <= size);
 
@@ -309,7 +381,18 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
       Elf32_Phdr *phdrt = (Elf32_Phdr *) ((char *)dfile->contents + ehdr32->e_phoff);
       Elf32_Phdr *phdr;
 
-      ELF_ASSUME_PHT(ehdr32, phdrt, phdr, secstart, secend);
+      for (i = 0; i < ehdr32->e_phnum; ++i) {
+        phdr = phdrt + i;
+        /* p_type */
+        klee_assume(phdr->p_type < PT_NUM);
+        /* p_flags */ /* MISSING */
+        /* p_offset */
+        klee_assume(phdr->p_offset >= section_start);
+        klee_assume(phdr->p_offset < section_end);
+        /* p_vaddr, p_paddr */ /* MISSING */
+        /* p_filesz, p_memsz */ /* MISSING */
+        /* p_align */ /* MISSING */
+      }
     }
   }
 
