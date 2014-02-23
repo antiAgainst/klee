@@ -110,10 +110,6 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
   dfile->contents = malloc(dfile->size);
   klee_make_symbolic(dfile->contents, dfile->size, name);
 
-  /* elf header, section header, program segment header size */
-  unsigned ehsize, shsize, phsize;
-  unsigned i;
-
   /* elf header */
   /* we just assume this is an 64-bit ELF file now */
   Elf64_Ehdr *ehdr = (Elf64_Ehdr *) dfile->contents;
@@ -122,9 +118,9 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
   klee_assume(ehdr->e_ident[EI_CLASS] < ELFCLASSNUM);
 
   if (ehdr->e_ident[EI_CLASS] == ELFCLASS64) {
-    ehsize = sizeof(Elf64_Ehdr);
-    shsize = sizeof(Elf64_Shdr);
-    phsize = sizeof(Elf64_Phdr);
+    unsigned ehsize = sizeof(Elf64_Ehdr);
+    unsigned shsize = sizeof(Elf64_Shdr);
+    unsigned phsize = sizeof(Elf64_Phdr);
 
     /* e_ident[] */
     klee_assume(ehdr->e_ident[EI_MAG0] == ELFMAG0);
@@ -191,6 +187,7 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
     /* the current available offset for real sections */
     unsigned offset = ehdr->e_shoff + ehdr->e_shnum * shsize;
     unsigned section_start = offset;
+    unsigned i;
 
     if (ehdr->e_shnum) {
       /* section header table */
@@ -257,9 +254,9 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
       }
     }
   } else {
-    ehsize = sizeof(Elf32_Ehdr);
-    shsize = sizeof(Elf32_Shdr);
-    phsize = sizeof(Elf32_Phdr);
+    unsigned ehsize = sizeof(Elf32_Ehdr);
+    unsigned shsize = sizeof(Elf32_Shdr);
+    unsigned phsize = sizeof(Elf32_Phdr);
 
     /* type cast to 32-bit layout */
     Elf32_Ehdr *ehdr32 = (Elf32_Ehdr *) dfile->contents;
@@ -329,6 +326,7 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
     /* the current available offset for real sections */
     unsigned offset = ehdr32->e_shoff + ehdr32->e_shnum * shsize;
     unsigned section_start = offset;
+    unsigned i;
 
     if (ehdr32->e_shnum) {
       /* section header table */
