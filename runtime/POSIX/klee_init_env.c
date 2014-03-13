@@ -89,6 +89,7 @@ static char *__get_sym_enum(uint8_t numChoice,
 
   klee_enumerate(s, numChoice, choices);
 
+  if (__streq(s, "--")) return NULL;
   return s;
 }
 
@@ -185,9 +186,9 @@ usage: (klee_init_env) [options] [program arguments]\n\
         choices[i] = argv[k++];
 
       sym_enum_name[4] = '0' + sym_enum_num++;
-      __add_arg(&new_argc, new_argv,
-                __get_sym_enum(n_choice, choices, sym_enum_name),
-                1024);
+      char *s = __get_sym_enum(n_choice, choices, sym_enum_name);
+      if (s)
+        __add_arg(&new_argc, new_argv, s, 1024);
     }
     else if (__streq(argv[k], "--sym-files") || __streq(argv[k], "-sym-files")) {
       const char* msg = "--sym-files expects two integer arguments <no-sym-files> <sym-file-len>";      
