@@ -258,8 +258,8 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
     /* p_type */
     klee_assume(
         (phdr->p_type < PT_NUM) |
-        ((phdr->p_type > PT_LOOS) & (phdr->p_type < PT_HIOS)) |
-        ((phdr->p_type > PT_LOPROC) & (phdr->p_type < PT_HIPROC))
+        ((phdr->p_type >= PT_LOOS) & (phdr->p_type <= PT_HIOS)) |
+        ((phdr->p_type >= PT_LOPROC) & (phdr->p_type <= PT_HIPROC))
     );
     /* p_flags */ /* MISSING */
     /* p_offset */
@@ -406,8 +406,8 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
     /* p_type */
     klee_assume(
         (phdr->p_type < PT_NUM) |
-        ((phdr->p_type > PT_LOOS) & (phdr->p_type < PT_HIOS)) |
-        ((phdr->p_type > PT_LOPROC) & (phdr->p_type < PT_HIPROC))
+        ((phdr->p_type >= PT_LOOS) & (phdr->p_type <= PT_HIOS)) |
+        ((phdr->p_type >= PT_LOPROC) & (phdr->p_type <= PT_HIPROC))
     );
     /* p_flags */ /* MISSING */
     /* p_offset */
