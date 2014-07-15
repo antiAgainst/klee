@@ -36,8 +36,11 @@ MemoryManager::~MemoryManager() {
 MemoryObject *MemoryManager::allocate(uint64_t size, bool isLocal, 
                                       bool isGlobal,
                                       const llvm::Value *allocSite) {
-  if (size>10*1024*1024)
+  if (size>10*1024*1024) {
     klee_warning_once(0, "Large alloc: %u bytes.  KLEE may run out of memory.", (unsigned) size);
+    return 0;
+  }
+
   
   uint64_t address = (uint64_t) (unsigned long) malloc((unsigned) size);
   if (!address)
