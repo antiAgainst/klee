@@ -114,7 +114,6 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
   Elf64_Ehdr *ehdr = (Elf64_Ehdr *) dfile->contents;
 
   /* first determine the class: 32-bit or 64-bit */
-  klee_assume(ehdr->e_ident[EI_CLASS] < ELFCLASSNUM);
   //klee_assume(
   //    (ehdr->e_ident[EI_CLASS] == ELFCLASS32) |
   //    (ehdr->e_ident[EI_CLASS] == ELFCLASS64)
@@ -136,7 +135,8 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
     ehdr->e_ident[EI_MAG1] = ELFMAG1;
     ehdr->e_ident[EI_MAG2] = ELFMAG2;
     ehdr->e_ident[EI_MAG3] = ELFMAG3;
-    klee_assume(ehdr->e_ident[EI_DATA] < ELFDATANUM);
+    klee_assume(ehdr->e_ident[EI_CLASS] <= ELFCLASSNUM);
+    klee_assume(ehdr->e_ident[EI_DATA] <= ELFDATANUM);
     ehdr->e_ident[EI_VERSION] = EV_CURRENT;
     klee_assume(
       (ehdr->e_ident[EI_OSABI] == ELFOSABI_NONE) |
@@ -159,12 +159,12 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
 
     /* e_type, e_machine, e_version */
     klee_assume(
-        (ehdr->e_type < ET_NUM) |
+        (ehdr->e_type <= ET_NUM) |
         ((ehdr->e_type >= ET_LOOS) & (ehdr->e_type <= ET_HIOS)) |
         (ehdr->e_type >= ET_LOPROC)
     );
-    klee_assume(ehdr->e_machine < EM_NUM); /* INCOMPLETE */
-    klee_assume(ehdr->e_version < EV_NUM);
+    klee_assume(ehdr->e_machine <= EM_NUM); /* INCOMPLETE */
+    klee_assume(ehdr->e_version <= EV_NUM);
     /* e_entry */ /* MISSING */
     /* e_phoff, e_shoff */ /* SEE BELOW */
     /* e_flags */ /* MISSING */
@@ -232,14 +232,12 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
     shdr = shdrt + 4;
     /* sh_name */ /* MISSING */
     /* sh_type */
-    klee_assume(shdr->sh_type != SHT_NULL);
-    klee_assume(shdr->sh_type != SHT_SYMTAB);
-    klee_assume(shdr->sh_type != SHT_DYNAMIC);
     klee_assume(
-        ((shdr->sh_type > SHT_NULL) & (shdr->sh_type < SHT_NUM)) |
+        (shdr->sh_type < SHT_NUM) |
         ((shdr->sh_type >= SHT_LOOS) & (shdr->sh_type <= SHT_HIOS)) |
         ((shdr->sh_type >= SHT_LOPROC) & (shdr->sh_type <= SHT_HIPROC)) |
-        ((shdr->sh_type >= SHT_LOUSER) & (shdr->sh_type <= SHT_HIUSER))
+        ((shdr->sh_type >= SHT_LOUSER) & (shdr->sh_type <= SHT_HIUSER)) |
+        ((shdr->sh_type >= SHT_MIPS_LIBLIST) & (shdr->sh_type <= SHT_MIPS_PDR_EXCEPTION)) 
     );
     /* sh_flags, sh_addr */ /* MISSING */
     /* sh_offset */
@@ -284,7 +282,8 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
     ehdr32->e_ident[EI_MAG1] = ELFMAG1;
     ehdr32->e_ident[EI_MAG2] = ELFMAG2;
     ehdr32->e_ident[EI_MAG3] = ELFMAG3;
-    klee_assume(ehdr32->e_ident[EI_DATA] < ELFDATANUM);
+    klee_assume(ehdr32->e_ident[EI_CLASS] <= ELFCLASSNUM);
+    klee_assume(ehdr32->e_ident[EI_DATA] <= ELFDATANUM);
     ehdr32->e_ident[EI_VERSION] = EV_CURRENT;
     klee_assume(
       (ehdr32->e_ident[EI_OSABI] == ELFOSABI_NONE) |
@@ -307,12 +306,12 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
 
     /* e_type, e_machine, e_version */
     klee_assume(
-        (ehdr32->e_type < ET_NUM) |
+        (ehdr32->e_type <= ET_NUM) |
         ((ehdr32->e_type >= ET_LOOS) & (ehdr32->e_type <= ET_HIOS)) |
         (ehdr32->e_type >= ET_LOPROC)
     );
-    klee_assume(ehdr32->e_machine < EM_NUM); /* INCOMPLETE */
-    klee_assume(ehdr32->e_version < EV_NUM);
+    klee_assume(ehdr32->e_machine <= EM_NUM); /* INCOMPLETE */
+    klee_assume(ehdr32->e_version <= EV_NUM);
     /* e_entry */ /* MISSING */
     /* e_phoff, e_shoff */ /* SEE BELOW */
     /* e_flags */ /* MISSING */
@@ -380,14 +379,12 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
     shdr = shdrt + 4;
     /* sh_name */ /* MISSING */
     /* sh_type */
-    klee_assume(shdr->sh_type != SHT_NULL);
-    klee_assume(shdr->sh_type != SHT_SYMTAB);
-    klee_assume(shdr->sh_type != SHT_DYNAMIC);
     klee_assume(
-        ((shdr->sh_type > SHT_NULL) & (shdr->sh_type < SHT_NUM)) |
+        (shdr->sh_type < SHT_NUM) |
         ((shdr->sh_type >= SHT_LOOS) & (shdr->sh_type <= SHT_HIOS)) |
         ((shdr->sh_type >= SHT_LOPROC) & (shdr->sh_type <= SHT_HIPROC)) |
-        ((shdr->sh_type >= SHT_LOUSER) & (shdr->sh_type <= SHT_HIUSER))
+        ((shdr->sh_type >= SHT_LOUSER) & (shdr->sh_type <= SHT_HIUSER)) |
+        ((shdr->sh_type >= SHT_MIPS_LIBLIST) & (shdr->sh_type <= SHT_MIPS_PDR_EXCEPTION))
     );
     /* sh_flags, sh_addr */ /* MISSING */
     /* sh_offset */
