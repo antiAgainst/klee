@@ -137,7 +137,6 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
     ehdr->e_ident[EI_MAG3] = ELFMAG3;
     klee_assume(ehdr->e_ident[EI_CLASS] <= ELFCLASSNUM);
     klee_assume(ehdr->e_ident[EI_DATA] <= ELFDATANUM);
-    ehdr->e_ident[EI_VERSION] = EV_CURRENT;
     klee_assume(
         (ehdr->e_ident[EI_VERSION] == EV_NONE) |
         (ehdr->e_ident[EI_VERSION] == EV_CURRENT)
@@ -172,13 +171,6 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
     /* e_entry */ /* MISSING */
     /* e_phoff, e_shoff */ /* SEE BELOW */
     /* e_flags */ /* MISSING */
-    klee_assume(
-        (ehdr->e_flags == 0x020b) | 
-        (ehdr->e_flags == 0x0210) | 
-        (ehdr->e_flags == 0x0214) |
-        (ehdr->e_flags == 1) | 
-        (ehdr->e_flags == 2)
-    );
     /* e_ehsize */
     ehdr->e_ehsize = ehsize;
     /* e_phentsize, e_phnum */
@@ -250,10 +242,6 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
         ((shdr->sh_type >= SHT_LOUSER) & (shdr->sh_type <= SHT_HIUSER))
     );
     /* sh_flags, sh_addr */ /* MISSING */
-    klee_assume(
-        (shdr->sh_flags == 0x10000000) | 
-        (shdr->sh_flags == 0x80000000)
-    );
     /* sh_offset */
     shdr->sh_offset = offset;
     /* sh_size */
@@ -274,15 +262,6 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
         ((phdr->p_type >= PT_LOPROC) & (phdr->p_type <= PT_HIPROC))
     );
     /* p_flags */ /* MISSING */
-    klee_assume(
-        (phdr->p_flags == 0x08000000) | 
-        (phdr->p_flags == 0x00100000) | 
-        (phdr->p_flags == 0x00200000) | 
-        (phdr->p_flags == 0x00400000) | 
-        (phdr->p_flags == 0x01000000) | 
-        (phdr->p_flags == 0x02000000) | 
-        (phdr->p_flags == 0x04000000)
-    );
     /* p_offset */
     klee_assume(phdr->p_offset >= section_start);
     klee_assume(phdr->p_offset < section_end);
@@ -307,7 +286,6 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
     ehdr32->e_ident[EI_MAG3] = ELFMAG3;
     klee_assume(ehdr32->e_ident[EI_CLASS] <= ELFCLASSNUM);
     klee_assume(ehdr32->e_ident[EI_DATA] <= ELFDATANUM);
-    ehdr32->e_ident[EI_VERSION] = EV_CURRENT;
     klee_assume(
       (ehdr32->e_ident[EI_VERSION] == EV_NONE) |
       (ehdr32->e_ident[EI_VERSION] == EV_CURRENT)
@@ -342,26 +320,6 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
     /* e_entry */ /* MISSING */
     /* e_phoff, e_shoff */ /* SEE BELOW */
     /* e_flags */ /* MISSING */
-    klee_assume(
-        (ehdr32->e_flags == 1) | 
-        (ehdr32->e_flags == 2) | 
-        (ehdr32->e_flags == 4) | 
-        (ehdr32->e_flags == 8) | 
-        (ehdr32->e_flags == 16) | 
-        (ehdr32->e_flags == 32) | 
-        (ehdr32->e_flags == 64) | 
-        (ehdr32->e_flags == 0xf0000000) |
-        (ehdr32->e_flags == 0x020b) | 
-        (ehdr32->e_flags == 0x0210) | 
-        (ehdr32->e_flags == 0x0214) |
-        (ehdr32->e_flags == 0x00010000) | 
-        (ehdr32->e_flags == 0x00020000) | 
-        (ehdr32->e_flags == 0x00040000) | 
-        (ehdr32->e_flags == 0x00080000) | 
-        (ehdr32->e_flags == 0x00100000) | 
-        (ehdr32->e_flags == 0x00400000) | 
-        (ehdr32->e_flags == 0x0000ffff)
-    );
     /* e_ehsize */
     ehdr32->e_ehsize = ehsize;
     /* e_phentsize, e_phnum */
@@ -433,16 +391,6 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
         ((shdr->sh_type >= SHT_LOUSER) & (shdr->sh_type <= SHT_HIUSER))
     );
     /* sh_flags, sh_addr */ /* MISSING */
-    klee_assume(
-        (shdr->sh_flags == 0x10000000) | 
-        (shdr->sh_flags == 0x20000000) | 
-        (shdr->sh_flags == 0x40000000) | 
-        (shdr->sh_flags == 0x80000000) | 
-        (shdr->sh_flags == 0x08000000) | 
-        (shdr->sh_flags == 0x04000000) | 
-        (shdr->sh_flags == 0x02000000) | 
-        (shdr->sh_flags == 0x01000000)
-    );
     /* sh_offset */
     shdr->sh_offset = offset;
     /* sh_size */
@@ -463,15 +411,6 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
         ((phdr->p_type >= PT_LOPROC) & (phdr->p_type <= PT_HIPROC))
     );
     /* p_flags */ /* MISSING */
-    klee_assume(
-        (phdr->p_flags == 0x08000000) | 
-        (phdr->p_flags == 0x00100000) | 
-        (phdr->p_flags == 0x00200000) | 
-        (phdr->p_flags == 0x00400000) | 
-        (phdr->p_flags == 0x01000000) | 
-        (phdr->p_flags == 0x02000000) | 
-        (phdr->p_flags == 0x04000000)
-    );
     /* p_offset */
     klee_assume(phdr->p_offset >= section_start);
     klee_assume(phdr->p_offset < section_end);
