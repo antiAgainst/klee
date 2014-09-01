@@ -165,7 +165,7 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
     klee_assume(
         (ehdr->e_type <= ET_CORE) |
         ((ehdr->e_type >= ET_LOOS) & (ehdr->e_type <= ET_HIOS)) |
-        ((ehdr->e_type >= ET_LOPROC) & (ehdr->e_type <= ET_HIPROC)
+        ((ehdr->e_type >= ET_LOPROC) & (ehdr->e_type <= ET_HIPROC))
     );
     klee_assume(ehdr->e_machine <= EM_NUM); /* INCOMPLETE */
     klee_assume(ehdr->e_version <= EV_NUM);
