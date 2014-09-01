@@ -164,7 +164,7 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
     klee_assume(
         (ehdr->e_type <= ET_CORE) |
         ((ehdr->e_type >= ET_LOOS) & (ehdr->e_type <= ET_HIOS)) |
-        ((ehdr->e_type >= ET_LOPROC) & (ehdr->e_type <= ET_HIPROC))
+        ((ehdr->e_type >= ET_LOPROC) & (ehdr->e_type < ET_HIPROC))
     );
     klee_assume(ehdr->e_machine <= EM_NUM); /* INCOMPLETE */
     klee_assume(ehdr->e_version <= EV_NUM);
@@ -313,7 +313,7 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
     klee_assume(
         (ehdr32->e_type <= ET_CORE) |
         ((ehdr32->e_type >= ET_LOOS) & (ehdr32->e_type <= ET_HIOS)) |
-        ((ehdr32->e_type >= ET_LOPROC) & (ehdr32->e_type <= ET_HIPROC))
+        ((ehdr32->e_type >= ET_LOPROC) & (ehdr32->e_type < ET_HIPROC))
     );
     klee_assume(ehdr32->e_machine <= EM_NUM); /* INCOMPLETE */
     klee_assume(ehdr32->e_version <= EV_NUM);
