@@ -114,7 +114,7 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
   Elf64_Ehdr *ehdr = (Elf64_Ehdr *) dfile->contents;
 
   /* first determine the class: 32-bit or 64-bit */
-  klee_assume(ehdr->e_ident[EI_CLASS] < ELFCLASSNUM);
+  klee_assume(ehdr->e_ident[EI_CLASS] <= ELFCLASSNUM);
   //klee_assume(
   //    (ehdr->e_ident[EI_CLASS] == ELFCLASS32) |
   //    (ehdr->e_ident[EI_CLASS] == ELFCLASS64)
@@ -136,7 +136,6 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
     ehdr->e_ident[EI_MAG1] = ELFMAG1;
     ehdr->e_ident[EI_MAG2] = ELFMAG2;
     ehdr->e_ident[EI_MAG3] = ELFMAG3;
-    klee_assume(ehdr->e_ident[EI_CLASS] <= ELFCLASSNUM);
     klee_assume(ehdr->e_ident[EI_DATA] <= ELFDATANUM);
     klee_assume(
         (ehdr->e_ident[EI_VERSION] == EV_NONE) |
@@ -285,7 +284,6 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
     ehdr32->e_ident[EI_MAG1] = ELFMAG1;
     ehdr32->e_ident[EI_MAG2] = ELFMAG2;
     ehdr32->e_ident[EI_MAG3] = ELFMAG3;
-    klee_assume(ehdr32->e_ident[EI_CLASS] <= ELFCLASSNUM);
     klee_assume(ehdr32->e_ident[EI_DATA] <= ELFDATANUM);
     klee_assume(
       (ehdr32->e_ident[EI_VERSION] == EV_NONE) |
