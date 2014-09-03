@@ -114,6 +114,7 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
   Elf64_Ehdr *ehdr = (Elf64_Ehdr *) dfile->contents;
 
   /* first determine the class: 32-bit or 64-bit */
+  klee_assume(ehdr->e_ident[EI_CLASS] < ELFCLASSNUM);
   //klee_assume(
   //    (ehdr->e_ident[EI_CLASS] == ELFCLASS32) |
   //    (ehdr->e_ident[EI_CLASS] == ELFCLASS64)
