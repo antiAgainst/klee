@@ -114,7 +114,7 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
   Elf64_Ehdr *ehdr = (Elf64_Ehdr *) dfile->contents;
 
   /* first determine the class: 32-bit or 64-bit */
-  klee_assume(ehdr->e_ident[EI_CLASS] <= ELFCLASSNUM);
+  klee_assume(ehdr->e_ident[EI_CLASS] < ELFCLASSNUM);
   //klee_assume(
   //    (ehdr->e_ident[EI_CLASS] == ELFCLASS32) |
   //    (ehdr->e_ident[EI_CLASS] == ELFCLASS64)
@@ -235,8 +235,11 @@ static void __create_new_elffile(exe_disk_file_t *dfile, unsigned size,
     shdr = shdrt + 4;
     /* sh_name */ /* MISSING */
     /* sh_type */
+    klee_assume(shdr->sh_type != SHT_NULL);
+    klee_assume(shdr->sh_type != SHT_SYMTAB);
+    klee_assume(shdr->sh_type != SHT_DYNAMIC);
     klee_assume(
-        (shdr->sh_type < SHT_NUM) |
+        ((shdr->sh_type > SHT_NULL) & (shdr->sh_type < SHT_NUM)) |
         ((shdr->sh_type >= SHT_LOOS) & (shdr->sh_type <= SHT_HIOS)) |
         ((shdr->sh_type >= SHT_LOPROC) & (shdr->sh_type <= SHT_HIPROC)) |
         ((shdr->sh_type >= SHT_LOUSER) & (shdr->sh_type <= SHT_HIUSER))
