@@ -584,7 +584,7 @@ void ObjectState::write64(unsigned offset, uint64_t value) {
   }
 }
 
-void ObjectState::print() {
+void ObjectState::print() const {
   std::cerr << "-- ObjectState --\n";
   std::cerr << "\tMemoryObject ID: " << object->id << "\n";
   std::cerr << "\tRoot Object: " << updates.root << "\n";

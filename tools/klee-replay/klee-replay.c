@@ -463,6 +463,10 @@ int klee_range(int start, int end, const char* name) {
   }
 }
 
+void klee_enumerate(void *addr, uint8_t n, char *choices[]) {
+  ;
+}
+
 void klee_report_error(const char *file, int line, 
                        const char *message, const char *suffix) {
   __emit_error(message);

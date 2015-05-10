@@ -73,6 +73,26 @@ static char *__get_sym_str(int numChars, char *name) {
   return s;
 }
 
+static inline int max(int a, int b) {
+  return a > b ? a : b;
+}
+
+static char *__get_sym_enum(uint8_t numChoice,
+    const char *choices[], char *name) {
+  int len = 0, i;
+  for (i=0; i<numChoice; i++)
+    len = max(len, strlen(choices[i]));
+
+  char *s = malloc(len+1);
+  klee_mark_global(s);
+  klee_make_symbolic(s, len+1, name);
+
+  klee_enumerate(s, numChoice, choices);
+
+  if (__streq(s, "--")) return NULL;
+  return s;
+}
+
 static void __add_arg(int *argc, char **argv, char *arg, int argcMax) {
   if (*argc==argcMax) {
     __emit_error("too many arguments for klee_init_env");
@@ -87,7 +107,9 @@ void klee_init_env(int* argcPtr, char*** argvPtr) {
   char** argv = *argvPtr;
 
   int new_argc = 0, n_args;
+  int n_choice = 0;
   char* new_argv[1024];
+  const char* choices[256];
   unsigned max_len, min_argvs, max_argvs;
   unsigned sym_files = 0, sym_file_len = 0;
   unsigned sym_elfs = 0, sym_elf_len = 0;
@@ -97,9 +119,12 @@ void klee_init_env(int* argcPtr, char*** argvPtr) {
   char** final_argv;
   char sym_arg_name[5] = "arg";
   unsigned sym_arg_num = 0;
+  char sym_enum_name[6] = "enum";
+  unsigned sym_enum_num = 0;
   int k=0, i;
 
   sym_arg_name[4] = '\0';
+  sym_enum_name[5] = '\0';
 
   // Recognize --help when it is the sole argument.
   if (argc == 2 && __streq(argv[1], "--help")) {
@@ -108,6 +133,8 @@ usage: (klee_init_env) [options] [program arguments]\n\
   -sym-arg <N>              - Replace by a symbolic argument with length N\n\
   -sym-args <MIN> <MAX> <N> - Replace by at least MIN arguments and at most\n\
                               MAX arguments, each with maximum length N\n\
+  -sym-enum <N> <CHOICE>...\n\
+                            - Replace by each of the N possible CHOICE\n\
   -sym-files <NUM> <N>      - Make stdin and up to NUM symbolic files, each\n\
                               with maximum size N.\n\
   -sym-stdout               - Make stdout symbolic.\n\
@@ -146,6 +173,23 @@ usage: (klee_init_env) [options] [program arguments]\n\
                   __get_sym_str(max_len, sym_arg_name),
                   1024);
       }
+    }
+    else if (__streq(argv[k], "--sym-enum") || __streq(argv[k], "-sym-enum")) {
+      const char* msg =
+        "--sym-enum expects at least two arguments <num-choices> <choice>...";
+
+      if (k+2 >= argc)
+	__emit_error(msg);
+
+      k++;
+      n_choice = __str_to_int(argv[k++], msg);
+      for (i=0; i < n_choice; i++)
+        choices[i] = argv[k++];
+
+      sym_enum_name[4] = '0' + sym_enum_num++;
+      char *s = __get_sym_enum(n_choice, choices, sym_enum_name);
+      if (s)
+        __add_arg(&new_argc, new_argv, s, 1024);
     }
     else if (__streq(argv[k], "--sym-files") || __streq(argv[k], "-sym-files")) {
       const char* msg = "--sym-files expects two integer arguments <no-sym-files> <sym-file-len>";      

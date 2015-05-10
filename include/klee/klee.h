@@ -74,11 +74,20 @@ extern "C" {
   
   /* print the tree associated w/ a given expression. */
   void klee_print_expr(const char *msg, ...);
+
+  /* print the state of a memory object. */
+  void klee_print_object_state(const char *msg, ...);
   
   /* NB: this *does not* fork n times and return [0,n) in children.
    * It makes n be symbolic and returns: caller must compare N times.
    */
   uintptr_t klee_choose(uintptr_t n);
+
+  /* substitute the content in target memory \arg addr with each of the \arg n
+   * possible choices from \arg choices. It results in \arg n execution states
+   * including the current one.
+   */
+  void klee_enumerate(void *addr, uint8_t n, const char *choices[]);
   
   /* special klee assert macro. this assert should be used when path consistency
    * across platforms is desired (e.g., in tests).

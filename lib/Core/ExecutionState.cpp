@@ -158,6 +158,15 @@ void ExecutionState::addSymbolic(const MemoryObject *mo, const Array *array) {
   mo->refCount++;
   symbolics.push_back(std::make_pair(mo, array));
 }
+
+bool ExecutionState::isSymbolic(const MemoryObject *mo) {
+  for (std::vector< std::pair<
+      const MemoryObject*, const Array*> >::const_iterator
+      i = symbolics.begin(),
+      e = symbolics.end(); i != e; ++i)
+    if (i->first == mo) return true;
+  return false;
+}
 ///
 
 std::string ExecutionState::getFnAlias(std::string fn) {
